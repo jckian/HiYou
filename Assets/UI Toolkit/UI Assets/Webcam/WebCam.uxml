@@ -1,0 +1,13 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="camViewer" style="flex-grow: 1; background-image: none; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" />
+    <ui:VisualElement style="flex-grow: 1; position: relative; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.24); -unity-background-image-tint-color: rgba(58, 132, 234, 0.49); width: 1080px; height: 1920px;" />
+    <ui:VisualElement style="flex-grow: 1; align-items: auto; top: 20%;">
+        <ui:Label text="Nod your head to begin." style="font-size: 36px; -unity-text-align: middle-center; height: 196px; -unity-text-outline-color: rgb(255, 255, 255); color: rgb(255, 255, 255); -unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;); -unity-font-style: normal; position: absolute; left: 40%; right: 40%; top: 0;" />
+    </ui:VisualElement>
+    <ui:VisualElement name="VisualElement" style="position:absolute; bottom:5%; left:0; width:100%; height:5%;">
+        <ui:Button text="Button" name="pictureButton" style="position:absolute; bottom:20%; left:40%; right:40%; height:50px;" />
+    </ui:VisualElement>
+    <ui:VisualElement style="flex-grow: 1; top: auto; bottom: 0; position: absolute; width: auto; height: 5%; left: 0; right: 0;">
+        <ui:ScrollView name="photoScrollView" style="height: auto; position: relative; bottom: 0; left: 0; right: 0; top: 0;" />
+    </ui:VisualElement>
+</ui:UXML>

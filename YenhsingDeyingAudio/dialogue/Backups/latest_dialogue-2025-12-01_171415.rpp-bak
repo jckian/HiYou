@@ -1,0 +1,67 @@
+<REAPER_PROJECT 0.1
+  <TRACK
+    NAME "39"
+    <ITEM
+      POSITION 0
+      LENGTH 10
+      <SOURCE WAVE
+        FILE "C:/SCI-Arc/F25-STUDIO/FINAL/data/YenhsingDeyingAudio/dialogue/39.mp3"
+      >
+    >
+  >
+
+  <TRACK
+    NAME "40"
+    <ITEM
+      POSITION 0
+      LENGTH 10
+      <SOURCE WAVE
+        FILE "C:/SCI-Arc/F25-STUDIO/FINAL/data/YenhsingDeyingAudio/dialogue/40.mp3"
+      >
+    >
+  >
+
+  <TRACK
+    NAME "41"
+    <ITEM
+      POSITION 0
+      LENGTH 10
+      <SOURCE WAVE
+        FILE "C:/SCI-Arc/F25-STUDIO/FINAL/data/YenhsingDeyingAudio/dialogue/41.mp3"
+      >
+    >
+  >
+
+  <TRACK
+    NAME "42"
+    <ITEM
+      POSITION 0
+      LENGTH 10
+      <SOURCE WAVE
+        FILE "C:/SCI-Arc/F25-STUDIO/FINAL/data/YenhsingDeyingAudio/dialogue/42.mp3"
+      >
+    >
+  >
+
+  <TRACK
+    NAME "43"
+    <ITEM
+      POSITION 0
+      LENGTH 10
+      <SOURCE WAVE
+        FILE "C:/SCI-Arc/F25-STUDIO/FINAL/data/YenhsingDeyingAudio/dialogue/43.mp3"
+      >
+    >
+  >
+
+  <TRACK
+    NAME "44"
+    <ITEM
+      POSITION 0
+      LENGTH 10
+      <SOURCE WAVE
+        FILE "C:/SCI-Arc/F25-STUDIO/FINAL/data/YenhsingDeyingAudio/dialogue/44.mp3"
+      >
+    >
+  >
+>

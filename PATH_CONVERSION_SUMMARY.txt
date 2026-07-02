@@ -1,0 +1,39 @@
+﻿# Path Conversion Summary
+
+Successfully converted all absolute paths to relative paths in AT_Studio_1 PythonProject.
+
+## Files Updated:
+
+### 1. Audio_prerecordReaperLoad.py
+**Before:** r"C:\SCI-Arc\F25-STUDIO\FINAL\data\YenhsingDeyingAudio"
+**After:**  os.path.join(os.path.dirname(__file__), "..", "YenhsingDeyingAudio")
+
+### 2. CommandCenter_LoadReaper.py
+**Before:** r"C:\SCI-Arc\F25-STUDIO\FINAL\data\YenhsingDeyingAudio\dialogue"
+**After:**  os.path.join(os.path.dirname(__file__), "..", "YenhsingDeyingAudio", "dialogue")
+
+### 3. ReaperLoad_mp3.py
+**Before:** r"C:\SCI-Arc\F25-STUDIO\FINAL\data\YenhsingDeyingAudio\dialogue\questions\Q1.mp3"
+**After:**  os.path.join(os.path.dirname(__file__), "..", "YenhsingDeyingAudio", "dialogue", "questions", "Q1.mp3")
+
+### 4. corePipeline_v3.py
+**Before:** "C:\\Development\\SCIArc-Github\\AT_Studio_1\\YenhsingDeyingAudio\\AudioWAV\\0-hihihi.wav"
+**After:**  os.path.join(os.path.dirname(__file__), "..", "YenhsingDeyingAudio", "AudioWAV", "0-hihihi.wav")
+
+### 5. http_handlers/scene4_endpoint.py
+**Before:** r"C:\Development\sciarcAT\AT_Studio_1\Assets\UI Toolkit\UI Assets\Webcam\composite_faces"
+**After:**  os.path.join(os.path.dirname(__file__), "..", "..", "Assets", "UI Toolkit", "UI Assets", "Webcam", "composite_faces")
+
+## Benefits:
+
+ Project is now portable - can run from any location
+ Cross-platform compatible (uses os.path.join)
+ Works with different drive letters
+ Easier for team collaboration
+ Better for version control and CI/CD pipelines
+
+## Assumptions:
+
+- YenhsingDeyingAudio folder is at the AT_Studio_1 root level (sibling to PythonProject)
+- Assets folder is at the AT_Studio_1 root level
+- Python scripts use __file__ to determine their location
