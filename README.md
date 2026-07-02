@@ -1,29 +1,28 @@
 # HiYou — An AI Icebreaker for Real-World Connections
 
-HiYou is an interactive AI system that analyzes real-time human presence, attention, facial expressions, and conversational responses to create personalized social connections. By combining computer vision, speech recognition, and AI-driven user matching, the system identifies compatible participants from the event database and generates an immersive interaction experience.
+**HiYou** is a real-time interactive art installation that turns a passerby into a participant. It detects people via a live camera feed, optionally engages them in a short spoken dialogue, analyses their facial expressions and appearance, matches them against other participants collected during the event, and generates a personalised composite portrait — all within seconds. The result is an AI-driven icebreaker that nudges strangers toward real-world conversation.
+
+Under the hood it is built as a **two-peer, event-driven, bidirectional feedback loop** between a Unity front-end (display + capture) and a Python back-end (computer vision + speech recognition + image generation).
 
 ## Workflow
 
 ![HiYou workflow](workflow.png)
 
+---
+
 ## Features
 
 ### 1. Real-Time Person Detection & Attention Tracking
 
-The system uses live camera input to detect and track visitors in the environment.  
-By analyzing gaze duration and engagement time, it estimates user attention levels and triggers the interactive experience when a participant maintains focus on the screen for more than 3 seconds.
+The system uses live camera input to detect and track visitors in the environment. By analyzing gaze duration and engagement time, it estimates user attention levels and triggers the interactive experience when a participant maintains focus on the screen for more than 3 seconds.
 
 ### 2. Voice-Based Conversational Interaction (Optional)
 
-The system provides pre-recorded questions (Q1–Q3) and captures user responses through speech recognition.
-
-Using OpenAI Whisper, the system converts voice input into text and analyzes conversational responses as part of the user profile generation process.
+The system provides pre-recorded questions (Q1–Q3) and captures user responses through speech recognition. Using OpenAI Whisper, it converts voice input into text and analyzes conversational responses as part of the user profile generation process.
 
 ### 3. Real-Time Facial Feature Analysis
 
-While users interact with the system, MediaPipe Face Mesh tracks 468 facial landmarks to extract behavioral and emotional features in real time.
-
-The system analyzes six key interaction indicators:
+While users interact with the system, MediaPipe Face Mesh tracks 468 facial landmarks to extract behavioral and emotional features in real time. The system analyzes six key interaction indicators:
 
 - Head movement
 - Energy level
@@ -36,52 +35,15 @@ These features are used to understand user expression patterns and communication
 
 ### 4. AI-Based Social Matching
 
-After collecting interaction data, the system compares the current user's:
-
-- Conversational responses
-- Facial behavior patterns
-- Interaction style
-- Visual appearance / clothing style
-
-with the existing participant database collected during the event.
-
-Based on these multimodal features, the system identifies the most compatible person for a potential conversation.
+After collecting interaction data, the system compares the current user's conversational responses, facial behavior patterns, interaction style, and visual appearance / clothing style with the existing participant database collected during the event. Based on these multimodal features, it identifies the most compatible person for a potential conversation.
 
 ### 5. Composite Portrait Generation & Spatial Guidance
 
-After matching, the system generates a personalized Composite Portrait combining the user and their matched participant.
-
-The system then searches the physical environment, locates the matched person, and provides real-time spatial guidance to direct the user toward their recommended connection.
-
-## Technology Stack
-
-- Computer Vision
-  - MediaPipe Face Mesh
-  - Real-time facial landmark tracking
-  - Person detection & tracking
-
-- Speech Processing
-  - OpenAI Whisper
-  - Voice-to-text analysis
-
-- AI Interaction
-  - Multimodal feature extraction
-  - User similarity matching
-  - Generative portrait synthesis
-
-- Data Processing
-  - Real-time user profile generation
-  - Event-based participant database matching
+After matching, the system generates a personalized composite portrait combining the user and their matched participant. It then searches the physical environment, locates the matched person, and provides real-time spatial guidance to direct the user toward their recommended connection.
 
 ---
 
-# Hi!you — Interactive Walk-by Portrait Installation
-
-**Hi!you** is a real-time interactive art installation that detects passersby via a live camera feed, engages them in a short spoken dialogue, analyses their facial expressions, and generates a personalised composite portrait — all within seconds. It is built as a **two-peer, event-driven, bidirectional feedback loop** between a Unity front-end (display + capture) and a Python back-end (computer vision + speech recognition + image generation).
-
----
-
-## Architecture (High-Level)
+## Architecture
 
 The system is split into two cooperating processes running on the same machine:
 
@@ -133,9 +95,17 @@ flowchart LR
     COMP -- "PNG file → composite_faces/" --> UI
 ```
 
+### Technology Stack
+
+- **Computer Vision** — MediaPipe Face Detection & Face Mesh (468 landmarks), person detection & tracking
+- **Speech Processing** — OpenAI Whisper voice-to-text analysis
+- **AI Interaction** — multimodal feature extraction, user similarity matching, generative portrait synthesis
+- **Data Processing** — real-time user profile generation, event-based participant database matching
+- **Rendering & Transport** — Unity Universal Render Pipeline (URP), OSC/UDP + HTTP messaging
+
 ---
 
-## State / Scene Flow
+## Scene Flow
 
 The installation cycles through four scenes. Scene 2 (Dialogue) is optional and can be skipped in the simplified `Scene134Manager` flow.
 
@@ -167,8 +137,6 @@ stateDiagram-v2
     end note
 ```
 
-### Scene Descriptions
-
 | Scene | Purpose | Key Logic |
 |-------|---------|-----------|
 | **Scene 1 — Walk-by** | Detect and track passersby. Show face boxes and attention meters on the live feed. | `vision_tracker.py` runs MediaPipe Face Detection + Pose, assigns stable IDs, accumulates per-person attention, and fires a trigger when threshold is reached. |
@@ -181,7 +149,7 @@ stateDiagram-v2
 ## Repository Layout
 
 ```
-Hi!you/
+HiYou/
 ├── Assets/
 │   ├── Scenes/MainInterface.unity          # Single Unity scene
 │   ├── Scripts/Editor/PythonLauncherEditor.cs
@@ -243,7 +211,7 @@ Hi!you/
 
 ### HTTP Endpoints (Unity → Python)
 
-All endpoints are served by Flask on **port 9100**. Unity scripts connect to `http://127.0.0.1:9100` by default. See [Network Binding & LAN Safety](#network-exposure) for important notes about the server's listen address.
+All endpoints are served by Flask on **port 9100**. Unity scripts connect to `http://127.0.0.1:9100` by default. See [Network Exposure](#network-exposure) for important notes about the server's listen address.
 
 | Path | Method | Request Body | Response | Purpose |
 |------|--------|--------------|----------|---------|
@@ -497,49 +465,3 @@ This is especially important in gallery or exhibition settings where the install
 * **Speech recognition**: [OpenAI Whisper](https://github.com/openai/whisper)
 * **Face embedding**: [ArcFace / InsightFace](https://github.com/deepinsight/insightface) (ONNX model)
 * **Rendering**: Unity Universal Render Pipeline (URP)
-
----
-
-## Evidence Notes
-
-The following source files were read and analysed to produce this document:
-
-**Python (PythonProject/)**
-- `corePipeline_v4.py` — entry point, Flask routes, worker threads, OSC client
-- `utils/config.py` — network config, thresholds
-- `utils/state.py` — scene state management
-- `utils/queues.py` — frame and audio queues
-- `utils/speech_state.py` — thread-safe speech recording state
-- `http_handlers/frame_endpoint.py` — frame ingestion
-- `http_handlers/audio_endpoint.py` — audio ingestion, start/stop candidate
-- `http_handlers/scene_endpoint.py` — scene change handler
-- `http_handlers/scene4_endpoint.py` — async composite generation trigger
-- `http_handlers/speech_state_endpoint.py` — speech state polling
-- `processors/vision_tracker.py` — Scene 1 face detection, tracking, attention, face saving
-- `processors/faceProcessor_v2.py` — Scene 3 face mesh metrics, bounding boxes
-- `processors/whisper_agent.py` — Whisper STT wrapper
-- `processors/audioProcessor.py` — PCM decoding
-- `processors/face_saver.py` — per-person snapshot saver
-- `processors/identity_manager.py` — ArcFace identity matching (stub)
-- `workers/audio_worker.py` — utterance detection, Whisper dispatch
-- `workers/face_composer.py` — Scene 4 composite generation
-
-**Unity (Assets/UI Toolkit/UI Assets/Webcam/scripts/)**
-- `SceneFlowManager.cs` — full 4-scene state machine
-- `Scene134Manager.cs` — simplified 3-scene state machine
-- `PythonEventRouter.cs` — OSC server, event dispatch
-- `ImageSender_v2.cs` — frame capture and HTTP upload
-- `AudioSender.cs` — audio capture and HTTP upload
-- `SceneChangeSender.cs` — scene-change and Scene 4 plan HTTP requests
-- `ChatSystem.cs` — Scene 2 dialogue flow
-- `ScanningRoom.cs` — Scene 1 UI rendering
-- `DrawFacialBoxes.cs` — Scene 3 UI rendering
-- `CompositedFace.cs` — Scene 4 composite display
-- `WebCamController_v2.cs` — webcam management
-- `MicrophoneController.cs` — microphone management
-- `PythonLauncher.cs` — Python process launcher
-
-**Configuration & Packages**
-- `Packages/manifest.json` — Unity package dependencies
-- `ProjectSettings/ProjectVersion.txt` — Unity 6000.2.9f1
-- `.gitignore` — ignore rules
