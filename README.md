@@ -2,6 +2,10 @@
 
 HiYou is an interactive AI system that analyzes real-time human presence, attention, facial expressions, and conversational responses to create personalized social connections. By combining computer vision, speech recognition, and AI-driven user matching, the system identifies compatible participants from the event database and generates an immersive interaction experience.
 
+## Workflow
+
+![HiYou workflow](workflow.png)
+
 ## Features
 
 ### 1. Real-Time Person Detection & Attention Tracking
