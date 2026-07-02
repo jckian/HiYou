@@ -1,4 +1,4 @@
-# HiYou — AI-Powered Social Interaction System
+# HiYou — An AI Icebreaker for Real-World Connections
 
 HiYou is an interactive AI system that analyzes real-time human presence, attention, facial expressions, and conversational responses to create personalized social connections. By combining computer vision, speech recognition, and AI-driven user matching, the system identifies compatible participants from the event database and generates an immersive interaction experience.
 
