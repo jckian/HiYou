@@ -1,3 +1,76 @@
+# HiYou — AI-Powered Social Interaction System
+
+HiYou is an interactive AI system that analyzes real-time human presence, attention, facial expressions, and conversational responses to create personalized social connections. By combining computer vision, speech recognition, and AI-driven user matching, the system identifies compatible participants from the event database and generates an immersive interaction experience.
+
+## Features
+
+### 1. Real-Time Person Detection & Attention Tracking
+
+The system uses live camera input to detect and track visitors in the environment.  
+By analyzing gaze duration and engagement time, it estimates user attention levels and triggers the interactive experience when a participant maintains focus on the screen for more than 3 seconds.
+
+### 2. Voice-Based Conversational Interaction (Optional)
+
+The system provides pre-recorded questions (Q1–Q3) and captures user responses through speech recognition.
+
+Using OpenAI Whisper, the system converts voice input into text and analyzes conversational responses as part of the user profile generation process.
+
+### 3. Real-Time Facial Feature Analysis
+
+While users interact with the system, MediaPipe Face Mesh tracks 468 facial landmarks to extract behavioral and emotional features in real time.
+
+The system analyzes six key interaction indicators:
+
+- Head movement
+- Energy level
+- Eye activity
+- Rhythm synchronization
+- Smile intensity
+- Pitch variation
+
+These features are used to understand user expression patterns and communication style.
+
+### 4. AI-Based Social Matching
+
+After collecting interaction data, the system compares the current user's:
+
+- Conversational responses
+- Facial behavior patterns
+- Interaction style
+- Visual appearance / clothing style
+
+with the existing participant database collected during the event.
+
+Based on these multimodal features, the system identifies the most compatible person for a potential conversation.
+
+### 5. Composite Portrait Generation & Spatial Guidance
+
+After matching, the system generates a personalized Composite Portrait combining the user and their matched participant.
+
+The system then searches the physical environment, locates the matched person, and provides real-time spatial guidance to direct the user toward their recommended connection.
+
+## Technology Stack
+
+- Computer Vision
+  - MediaPipe Face Mesh
+  - Real-time facial landmark tracking
+  - Person detection & tracking
+
+- Speech Processing
+  - OpenAI Whisper
+  - Voice-to-text analysis
+
+- AI Interaction
+  - Multimodal feature extraction
+  - User similarity matching
+  - Generative portrait synthesis
+
+- Data Processing
+  - Real-time user profile generation
+  - Event-based participant database matching
+
+---
+
 # Hi!you — Interactive Walk-by Portrait Installation
 
 **Hi!you** is a real-time interactive art installation that detects passersby via a live camera feed, engages them in a short spoken dialogue, analyses their facial expressions, and generates a personalised composite portrait — all within seconds. It is built as a **two-peer, event-driven, bidirectional feedback loop** between a Unity front-end (display + capture) and a Python back-end (computer vision + speech recognition + image generation).
