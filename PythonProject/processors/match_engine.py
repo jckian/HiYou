@@ -1,18 +1,34 @@
 # ============================================================
-# match_engine.py — Answer → MBTI → choose a match from the store
+# match_engine.py — Match a visitor to the best chat partner
 # ============================================================
-# Flow (called at Scene4 generation time):
-#   1) Take the visitor's latest spoken answer (Whisper transcript).
-#   2) Ask OpenAI to (a) infer the visitor's MBTI and (b) pick the single
-#      best match from the pool of past visitors. OpenAI decides for itself
-#      whether a similar or a complementary personality is the better match.
-#   3) Return that person's stored face image (used as "OTHER" in the
-#      Scene4 composite), then register the current visitor into the store
-#      so the pool grows over time.
+# Goal (Scene4 generation time): from the pool of people who interacted with
+# Hi!you earlier the same day, pick the single most suitable person to chat
+# with — judged on THREE signals together:
 #
-# Everything degrades gracefully: if there is no OPENAI_API_KEY, the openai
-# package is missing, the pool is empty, or any call fails, we return None as
-# the match (caller falls back to random) and never crash the pipeline.
+#   1) 回答問題的答案  — what the visitor said (Whisper transcript → MBTI)
+#   2) 臉部特徵        — facial features / vibe (read from the frame)
+#   3) 穿衣風格        — clothing style        (read from the frame)
+#
+# How it works
+# ------------
+# The Scene4 frame is a full upper-body shot (face + clothing visible). At
+# registration we do ONE OpenAI *vision* call that looks at that frame and,
+# together with the spoken answer, returns a structured profile:
+#     { mbti, face, clothing, keywords }
+# and — in the same call — picks the best match_id from the existing pool
+# (whose stored profiles are passed in as text). OpenAI itself decides whether
+# a similar or a complementary person is the better chat partner.
+#
+# The new visitor is then registered (frame + profile) so the pool grows over
+# the course of the day. The current visitor can never match itself, because we
+# query the pool *before* inserting.
+#
+# Graceful degradation
+# --------------------
+# No OPENAI_API_KEY, openai package missing, empty pool, or any failure →
+# match returns None (caller falls back to a random face) and the pipeline
+# never crashes. Profiles are still stored (as UNKNOWN) so matching can start
+# working as soon as a key is available.
 # ============================================================
 
 import os
@@ -46,8 +62,7 @@ def _get_client():
     try:
         from openai import OpenAI
         _client = OpenAI()
-        print("[MATCH] OpenAI client ready (model="
-              f"{OPENAI_MATCH_MODEL})")
+        print(f"[MATCH] OpenAI client ready (model={OPENAI_MATCH_MODEL})")
     except Exception as e:
         print(f"[MATCH] openai unavailable ({e}) → random matching fallback")
         _client = None
@@ -85,8 +100,10 @@ def _candidate_path(entry: dict) -> str:
     return str(_store_dir() / entry["file"])
 
 
-def register_visitor(face_img, answer: str, mbti: str) -> dict:
-    """Persist this visitor (face + answer + mbti) as a future match candidate."""
+def register_visitor(face_img, answer: str, profile: dict) -> dict:
+    """Persist this visitor (frame + answer + inferred profile) as a future
+    match candidate. `profile` carries mbti / face / clothing / keywords."""
+    profile = profile or {}
     with _lock:
         entries = load_store()
         new_id = (max((e.get("id", 0) for e in entries), default=0) + 1)
@@ -101,48 +118,95 @@ def register_visitor(face_img, answer: str, mbti: str) -> dict:
             "id": new_id,
             "file": fname,
             "answer": (answer or "").strip(),
-            "mbti": (mbti or "UNKNOWN").strip().upper(),
+            "mbti": (profile.get("mbti") or "UNKNOWN").strip().upper(),
+            "face": (profile.get("face") or "").strip(),
+            "clothing": (profile.get("clothing") or "").strip(),
+            "keywords": profile.get("keywords") or [],
             "ts": time.time(),
         }
         entries.append(entry)
         _save_store(entries)
-        print(f"[MATCH] registered visitor id={new_id} mbti={entry['mbti']}")
+        print(f"[MATCH] registered visitor id={new_id} mbti={entry['mbti']} "
+              f"clothing={entry['clothing']!r}")
         return entry
 
 
 # ------------------------------------------------------------
-# LLM: infer MBTI + choose match in a single call
+# Image → JPEG base64 (for the vision call)
 # ------------------------------------------------------------
-def analyze_and_match(answer_text: str, candidates: list):
+def _encode_jpg_b64(img) -> str | None:
+    if img is None:
+        return None
+    try:
+        import base64
+        ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        if not ok:
+            return None
+        return base64.b64encode(buf.tobytes()).decode("ascii")
+    except Exception as e:
+        print(f"[MATCH] image encode failed ({e})")
+        return None
+
+
+# ------------------------------------------------------------
+# LLM: read the visitor's face + clothing, infer MBTI, pick a match
+#      — all in a single vision call.
+# ------------------------------------------------------------
+def analyze_and_match(frame, answer_text: str, candidates: list):
     """
-    Returns dict {"visitor_mbti", "match_id", "reason"} or None on any failure.
-    OpenAI decides similar-vs-complementary itself.
+    Look at the visitor's frame (face + clothing) together with what they said,
+    and choose the best chat partner from `candidates`.
+
+    Returns a dict with:
+        visitor_mbti, visitor_face, visitor_clothing, visitor_keywords,
+        match_id (id from candidates, or None), reason
+    or None on any failure (caller falls back to random).
     """
     client = _get_client()
     if client is None:
         return None
 
+    img_b64 = _encode_jpg_b64(frame)
+    if img_b64 is None:
+        return None
+
+    # Candidate pool as compact text: each past visitor's three signals.
     cand_lines = [
-        {"id": c["id"], "mbti": c.get("mbti", "UNKNOWN"), "answer": c.get("answer", "")}
+        {
+            "id": c["id"],
+            "mbti": c.get("mbti", "UNKNOWN"),
+            "answer": c.get("answer", ""),
+            "face": c.get("face", ""),
+            "clothing": c.get("clothing", ""),
+        }
         for c in candidates
     ]
 
     system = (
         "You are the matchmaking engine for an interactive art installation. "
-        "Given a visitor's spoken answer, first infer their MBTI type (4 letters). "
-        "Then choose the single best match from the candidate pool. "
-        "YOU decide whether a similar or a complementary personality makes the better "
-        "match, and give a short reason. If the pool is empty, set match_id to null. "
-        "Respond with strict JSON only."
+        "You are shown a photo of the current visitor (their face and clothing "
+        "are visible) plus what they said out loud. Analyse THREE signals: "
+        "(1) their spoken answer, (2) their facial features / vibe, "
+        "(3) their clothing style. From these, infer the visitor's MBTI type "
+        "(4 letters) and write short descriptions of their face and clothing. "
+        "Then choose, from the candidate pool, the single person who would be "
+        "the most enjoyable to chat with. YOU decide whether a similar or a "
+        "complementary personality/look makes the better match, and give a "
+        "short reason that references the signals. If the pool is empty, set "
+        "match_id to null. Respond with strict JSON only."
     )
-    user = json.dumps(
+
+    user_text = json.dumps(
         {
             "visitor_answer": answer_text or "",
             "candidates": cand_lines,
             "output_schema": {
                 "visitor_mbti": "<4-letter MBTI, e.g. INFP>",
+                "visitor_face": "<short description of the visitor's face/vibe>",
+                "visitor_clothing": "<short description of clothing style>",
+                "visitor_keywords": ["<a few personality/style keywords>"],
                 "match_id": "<id from candidates, or null>",
-                "reason": "<short explanation>",
+                "reason": "<short explanation referencing answer/face/clothing>",
             },
         },
         ensure_ascii=False,
@@ -153,42 +217,60 @@ def analyze_and_match(answer_text: str, candidates: list):
             model=OPENAI_MATCH_MODEL,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": user},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_text},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{img_b64}"
+                            },
+                        },
+                    ],
+                },
             ],
             temperature=0.5,
             response_format={"type": "json_object"},
         )
-        data = json.loads(resp.choices[0].message.content)
-        return data
+        return json.loads(resp.choices[0].message.content)
     except Exception as e:
-        print(f"[MATCH] OpenAI call failed ({e}) → random matching fallback")
+        print(f"[MATCH] OpenAI vision call failed ({e}) → random matching fallback")
         return None
 
 
 # ------------------------------------------------------------
 # Public entry point used by Scene4
 # ------------------------------------------------------------
-def select_match_and_register(visitor_face_img, answer_text: str):
+def select_match_and_register(visitor_frame, answer_text: str):
     """
-    Pick a match for this visitor from the store, then register the visitor.
+    Pick the best chat partner for this visitor from the day's pool, then
+    register the visitor into the pool.
 
-    Returns (other_face_img | None, info dict). other_face_img is None when no
-    smart match was made (caller should fall back to a random face).
+    Uses three signals together — spoken answer, facial features, clothing
+    style — via one OpenAI vision call. Returns (other_face_img | None, info).
+    other_face_img is None when no smart match was made (caller should fall
+    back to a random face).
     """
     entries = load_store()
     info = {
         "answer": (answer_text or "").strip(),
         "visitor_mbti": "UNKNOWN",
+        "face": "",
+        "clothing": "",
         "match_id": None,
         "mode": "random",
         "reason": "",
     }
     other_img = None
 
-    result = analyze_and_match(answer_text, entries)
+    result = analyze_and_match(visitor_frame, answer_text, entries)
     if result:
         info["visitor_mbti"] = (result.get("visitor_mbti") or "UNKNOWN")
-        info["reason"] = result.get("reason", "")
+        info["face"] = result.get("visitor_face", "") or ""
+        info["clothing"] = result.get("visitor_clothing", "") or ""
+        info["reason"] = result.get("reason", "") or ""
+
         mid = result.get("match_id")
         if mid is not None:
             match = next((e for e in entries if e["id"] == mid), None)
@@ -197,14 +279,21 @@ def select_match_and_register(visitor_face_img, answer_text: str):
                 if img is not None:
                     other_img = img
                     info["match_id"] = mid
-                    info["mode"] = "mbti"
-                    print(f"[MATCH] visitor={info['visitor_mbti']} → "
-                          f"matched id={mid} ({match.get('mbti')}) :: {info['reason']}")
+                    info["mode"] = "smart"  # answer + face + clothing
+                    print(f"[MATCH] visitor={info['visitor_mbti']} "
+                          f"clothing={info['clothing']!r} → matched id={mid} "
+                          f"({match.get('mbti')}) :: {info['reason']}")
 
-    # Grow the pool for future visitors (current visitor is never its own match,
-    # because we queried the store *before* this insert).
+    # Grow the pool for future visitors. Store the profile we just inferred so
+    # future matches can compare against this visitor's three signals as text.
+    profile = {
+        "mbti": info["visitor_mbti"],
+        "face": info["face"],
+        "clothing": info["clothing"],
+        "keywords": (result or {}).get("visitor_keywords", []),
+    }
     try:
-        register_visitor(visitor_face_img, answer_text, info["visitor_mbti"])
+        register_visitor(visitor_frame, answer_text, profile)
     except Exception as e:
         print(f"[MATCH] register_visitor failed: {e}")
 
